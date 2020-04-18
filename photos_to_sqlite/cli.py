@@ -28,8 +28,10 @@ def s3_auth(auth):
         auth_data = json.load(open(auth))
     else:
         auth_data = {}
-    auth_data.update({
-        "access_key_id": access_key_id,
-        "secret_access_key": secret_access_key,
-    })
+    auth_data.update(
+        {
+            "photos_s3_access_key_id": access_key_id,
+            "photos_s3_secret_access_key": secret_access_key,
+        }
+    )
     open(auth, "w").write(json.dumps(auth_data, indent=4) + "\n")
