@@ -5,6 +5,9 @@ import json
 import pathlib
 from .utils import calculate_hash
 
+from PIL import Image
+import PIL.ExifTags
+
 
 @click.group()
 @click.version_option()
@@ -70,36 +73,42 @@ def upload(db_path, directories, auth):
     for directory in directories:
         path = pathlib.Path(directory)
         images = (
-            p.resolve()
+            p
             for p in path.glob("**/*")
             if p.suffix in [".jpg", ".jpeg", ".png", ".gif", ".heic"]
         )
-        for filepath in images:
+        for imagepath in images:
+            filepath = imagepath.resolve()
             sha256 = calculate_hash(filepath)
+            size = filepath.stat().st_size
             ext = filepath.suffix.lstrip(".")
-            uploads.upsert({"sha256": sha256, "filepath": str(filepath), "ext": ext})
+            uploads.upsert({"sha256": sha256, "filepath": str(filepath), "ext": ext, "size": size})
             print(filepath)
             keyname = "{}.{}".format(sha256, ext)
-            client.upload_file(
-                str(filepath),
-                "dogsheep-photos-simon",
-                keyname,
-                ExtraArgs={
-                    "ContentType": {
-                        "jpg": "image/jpeg",
-                        "jpeg": "image/jpeg",
-                        "png": "image/png",
-                        "gif": "image/gif",
-                        "heic": "image/heic",
-                    }[ext]
-                },
-            )
-            print(
-                " ... uploaded: {}".format(
-                    client.generate_presigned_url(
-                        "get_object",
-                        Params={"Bucket": "dogsheep-photos-simon", "Key": keyname,},
-                        ExpiresIn=600,
-                    )
-                )
-            )
+
+            image = Image.open(filepath)
+            exif = {PIL.ExifTags.TAGS.get(k, str(k)): v for k, v in image.getexif().items()}
+            uploads.update(sha256, exif, alter=True)
+            # client.upload_file(
+            #     str(filepath),
+            #     "dogsheep-photos-simon",
+            #     keyname,
+            #     ExtraArgs={
+            #         "ContentType": {
+            #             "jpg": "image/jpeg",
+            #             "jpeg": "image/jpeg",
+            #             "png": "image/png",
+            #             "gif": "image/gif",
+            #             "heic": "image/heic",
+            #         }[ext]
+            #     },
+            # )
+            # print(
+            #     " ... uploaded: {}".format(
+            #         client.generate_presigned_url(
+            #             "get_object",
+            #             Params={"Bucket": "dogsheep-photos-simon", "Key": keyname,},
+            #             ExpiresIn=600,
+            #         )
+            #     )
+            # )
