@@ -3,7 +3,7 @@ import sqlite_utils
 import boto3
 import json
 import pathlib
-from .utils import calculate_hash
+from .utils import calculate_hash, image_paths, CONTENT_TYPES
 
 
 @click.group()
@@ -59,7 +59,10 @@ def s3_auth(auth):
     default="auth.json",
     help="Path to auth.json token file",
 )
-def upload(db_path, directories, auth):
+@click.option(
+    "--no-progress", is_flag=True, help="Don't show progress bar",
+)
+def upload(db_path, directories, auth, no_progress):
     "Upload photos from directories to S3"
     creds = json.load(open(auth))
     db = sqlite_utils.Database(db_path)
@@ -69,39 +72,33 @@ def upload(db_path, directories, auth):
         aws_secret_access_key=creds["photos_s3_secret_access_key"],
     )
     uploads = db.table("photos", pk="sha256")
-    for directory in directories:
-        path = pathlib.Path(directory)
-        images = (
-            p.resolve()
-            for p in path.glob("**/*")
-            if p.suffix in [".jpg", ".jpeg", ".png", ".gif", ".heic"]
+    total_size = None
+    bar = None
+    if not no_progress:
+        # Calculate total size first
+        total_size = sum(p.stat().st_size for p in image_paths(directories))
+        bar = click.progressbar(
+            length=total_size,
+            label="Uploading {total_size:.2f} GB".format(
+                total_size=total_size / (1024 * 1024 * 1024)
+            ),
+            show_eta=True,
         )
-        for filepath in images:
-            sha256 = calculate_hash(filepath)
-            ext = filepath.suffix.lstrip(".")
-            uploads.upsert({"sha256": sha256, "filepath": str(filepath), "ext": ext})
-            print(filepath)
-            keyname = "{}.{}".format(sha256, ext)
-            client.upload_file(
-                str(filepath),
-                "dogsheep-photos-simon",
-                keyname,
-                ExtraArgs={
-                    "ContentType": {
-                        "jpg": "image/jpeg",
-                        "jpeg": "image/jpeg",
-                        "png": "image/png",
-                        "gif": "image/gif",
-                        "heic": "image/heic",
-                    }[ext]
-                },
-            )
-            print(
-                " ... uploaded: {}".format(
-                    client.generate_presigned_url(
-                        "get_object",
-                        Params={"Bucket": "dogsheep-photos-simon", "Key": keyname,},
-                        ExpiresIn=600,
-                    )
-                )
-            )
+
+    for path in image_paths(directories):
+        resolved = path.resolve()
+        sha256 = calculate_hash(resolved)
+        ext = resolved.suffix.lstrip(".")
+        size = path.stat().st_size
+        uploads.upsert(
+            {"sha256": sha256, "filepath": str(resolved), "ext": ext, "size": size}
+        )
+        keyname = "{}.{}".format(sha256, ext)
+        client.upload_file(
+            str(resolved),
+            creds["photos_s3_bucket"],
+            keyname,
+            ExtraArgs={"ContentType": CONTENT_TYPES[ext]},
+        )
+        if bar:
+            bar.update(size)
