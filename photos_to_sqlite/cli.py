@@ -24,6 +24,7 @@ def s3_auth(auth):
     "Save S3 credentials to a JSON file"
     click.echo("Create S3 credentials and paste them here:")
     click.echo()
+    bucket = click.prompt("S3 bucket")
     access_key_id = click.prompt("Access key ID")
     secret_access_key = click.prompt("Secret access key")
     if pathlib.Path(auth).exists():
@@ -32,6 +33,7 @@ def s3_auth(auth):
         auth_data = {}
     auth_data.update(
         {
+            "photos_s3_bucket": bucket,
             "photos_s3_access_key_id": access_key_id,
             "photos_s3_secret_access_key": secret_access_key,
         }
