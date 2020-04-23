@@ -3,7 +3,7 @@ import sqlite_utils
 import boto3
 import json
 import pathlib
-from .utils import calculate_hash, image_paths, CONTENT_TYPES
+from .utils import calculate_hash, image_paths, CONTENT_TYPES, get_all_keys
 
 
 @click.group()
@@ -71,25 +71,52 @@ def upload(db_path, directories, auth, no_progress):
         aws_access_key_id=creds["photos_s3_access_key_id"],
         aws_secret_access_key=creds["photos_s3_secret_access_key"],
     )
+    click.echo("Fetching existing keys from S3...")
+    existing_keys = {
+        key.split(".")[0] for key in get_all_keys(client, creds["photos_s3_bucket"])
+    }
+    click.echo("Got {:,} existing keys".format(len(existing_keys)))
+    # Now calculate sizes and hashes for files
+    paths = list(image_paths(directories))
+    hash_and_size = {}
+    # TODO: speed up by running multiple processes or threads?
+    # hashlib docs say: 'For better multithreading performance,the Python GIL is
+    # released for data larger than 2047 bytes at object creation or on update'
+    with click.progressbar(paths, label="Calculating hashes") as ppaths:
+        for path in ppaths:
+            resolved = path.resolve()
+            size = path.stat().st_size
+            sha256 = calculate_hash(resolved)
+            hash_and_size[path] = (sha256, size)
+
+    hashes = {v[0] for v in hash_and_size.values()}
+    new_paths = [p for p in hash_and_size if hash_and_size[p][0] not in existing_keys]
+    click.echo(
+        "{:,} hashed files, {:,} are not yet in S3".format(len(hashes), len(new_paths))
+    )
+
     uploads = db.table("photos", pk="sha256")
     total_size = None
     bar = None
     if not no_progress:
         # Calculate total size first
-        total_size = sum(p.stat().st_size for p in image_paths(directories))
-        bar = click.progressbar(
-            length=total_size,
-            label="Uploading {total_size:.2f} GB".format(
+        total_size = sum(hash_and_size[p][1] for p in new_paths)
+        click.echo(
+            "Uploading {total_size:.2f} GB".format(
                 total_size=total_size / (1024 * 1024 * 1024)
-            ),
+            )
+        )
+        bar = click.progressbar(
+            length=len(new_paths),
+            label="Uploading {size:,} photos".format(size=len(new_paths)),
             show_eta=True,
+            show_pos=True,
         )
 
-    for path in image_paths(directories):
+    for path in new_paths:
         resolved = path.resolve()
-        sha256 = calculate_hash(resolved)
+        sha256, size = hash_and_size[path]
         ext = resolved.suffix.lstrip(".")
-        size = path.stat().st_size
         uploads.upsert(
             {"sha256": sha256, "filepath": str(resolved), "ext": ext, "size": size}
         )
@@ -101,4 +128,4 @@ def upload(db_path, directories, auth, no_progress):
             ExtraArgs={"ContentType": CONTENT_TYPES[ext]},
         )
         if bar:
-            bar.update(size)
+            bar.update(1)

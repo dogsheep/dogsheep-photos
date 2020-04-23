@@ -31,3 +31,12 @@ def image_paths(directories):
             for p in path.glob("**/*")
             if p.suffix in [".jpg", ".jpeg", ".png", ".gif", ".heic"]
         )
+
+
+def get_all_keys(client, bucket):
+    paginator = client.get_paginator("list_objects_v2")
+    keys = []
+    for page in paginator.paginate(Bucket=bucket):
+        for row in page["Contents"]:
+            keys.append(row["Key"])
+    return keys
