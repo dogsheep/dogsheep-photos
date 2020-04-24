@@ -1,10 +1,13 @@
 import click
 import concurrent.futures
+import threading
 import sqlite_utils
 import boto3
 import json
 import pathlib
 from .utils import calculate_hash, image_paths, CONTENT_TYPES, get_all_keys
+
+boto3_local = threading.local()
 
 
 @click.group()
@@ -119,22 +122,44 @@ def upload(db_path, directories, auth, no_progress):
             show_pos=True,
         )
 
-    for path in new_paths:
-        resolved = path.resolve()
-        sha256, size = hash_and_size[path]
-        ext = resolved.suffix.lstrip(".")
-        uploads.upsert(
-            {"sha256": sha256, "filepath": str(resolved), "ext": ext, "size": size}
+    # Upload photos in a thread pool
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+
+        future_to_path = {}
+        for path in new_paths:
+            ext = path.suffix.lstrip(".")
+            sha256, size = hash_and_size[path]
+            future = executor.submit(s3_upload, path, sha256, ext, creds)
+            future_to_path[future] = path
+
+        for future in concurrent.futures.as_completed(future_to_path):
+            path = future.result()
+            sha256, size = hash_and_size[path]
+            ext = path.suffix.lstrip(".")
+            uploads.upsert(
+                {"sha256": sha256, "filepath": str(path), "ext": ext, "size": size}
+            )
+            if bar:
+                bar.update(1)
+
+
+def s3_upload(path, sha256, ext, creds):
+    client = getattr(boto3_local, "client", None)
+    if client is None:
+        client = boto3.client(
+            "s3",
+            aws_access_key_id=creds["photos_s3_access_key_id"],
+            aws_secret_access_key=creds["photos_s3_secret_access_key"],
         )
-        keyname = "{}.{}".format(sha256, ext)
-        client.upload_file(
-            str(resolved),
-            creds["photos_s3_bucket"],
-            keyname,
-            ExtraArgs={"ContentType": CONTENT_TYPES[ext]},
-        )
-        if bar:
-            bar.update(1)
+        boto3_local.client = client
+    keyname = "{}.{}".format(sha256, ext)
+    client.upload_file(
+        str(path),
+        creds["photos_s3_bucket"],
+        keyname,
+        ExtraArgs={"ContentType": CONTENT_TYPES[ext]},
+    )
+    return path
 
 
 def hash_and_size_path(path):
