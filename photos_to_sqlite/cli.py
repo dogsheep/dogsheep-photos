@@ -1,4 +1,5 @@
 import click
+import concurrent.futures
 import sqlite_utils
 import boto3
 import json
@@ -79,14 +80,19 @@ def upload(db_path, directories, auth, no_progress):
     # Now calculate sizes and hashes for files
     paths = list(image_paths(directories))
     hash_and_size = {}
-    # TODO: speed up by running multiple processes or threads?
+    hash_bar = None
+    if not no_progress:
+        hash_bar = click.progressbar(paths, label="Calculating hashes")
     # hashlib docs say: 'For better multithreading performance,the Python GIL is
     # released for data larger than 2047 bytes at object creation or on update'
-    with click.progressbar(paths, label="Calculating hashes") as ppaths:
-        for path in ppaths:
-            resolved = path.resolve()
-            size = path.stat().st_size
-            sha256 = calculate_hash(resolved)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_path = {
+            executor.submit(hash_and_size_path, path.resolve()): path for path in paths
+        }
+        for future in concurrent.futures.as_completed(future_to_path):
+            path, sha256, size = future.result()
+            if hash_bar:
+                hash_bar.update(1)
             hash_and_size[path] = (sha256, size)
 
     hashes = {v[0] for v in hash_and_size.values()}
@@ -129,3 +135,9 @@ def upload(db_path, directories, auth, no_progress):
         )
         if bar:
             bar.update(1)
+
+
+def hash_and_size_path(path):
+    size = path.stat().st_size
+    sha256 = calculate_hash(path)
+    return path, sha256, size
