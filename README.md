@@ -27,3 +27,5 @@ Run this command to upload every photo in a specific directory to your S3 bucket
     $ photos-to-sqlite upload photos.db ~/Desktop
 
 The command will only upload photos that have not yet been uploaded, based on their sha256 hash.
+
+To see what the command would do without uploading any files, use the `--dry-run` option.

@@ -66,7 +66,10 @@ def s3_auth(auth):
 @click.option(
     "--no-progress", is_flag=True, help="Don't show progress bar",
 )
-def upload(db_path, directories, auth, no_progress):
+@click.option(
+    "--dry-run", is_flag=True, help="Don't upload, just show what would happen",
+)
+def upload(db_path, directories, auth, no_progress, dry_run):
     "Upload photos from directories to S3"
     creds = json.load(open(auth))
     db = sqlite_utils.Database(db_path)
@@ -101,26 +104,31 @@ def upload(db_path, directories, auth, no_progress):
     hashes = {v[0] for v in hash_and_size.values()}
     new_paths = [p for p in hash_and_size if hash_and_size[p][0] not in existing_keys]
     click.echo(
-        "{:,} hashed files, {:,} are not yet in S3".format(len(hashes), len(new_paths))
+        "\n{:,} hashed files, {:,} are not yet in S3".format(len(hashes), len(new_paths))
     )
 
     uploads = db.table("photos", pk="sha256")
     total_size = None
     bar = None
-    if not no_progress:
+    if dry_run or not no_progress:
         # Calculate total size first
         total_size = sum(hash_and_size[p][1] for p in new_paths)
         click.echo(
-            "Uploading {total_size:.2f} GB".format(
+            "{verb} {num} files, {total_size:.2f} GB".format(
+                verb="Would upload" if dry_run else "Uploading",
+                num=len(new_paths),
                 total_size=total_size / (1024 * 1024 * 1024)
             )
         )
         bar = click.progressbar(
             length=len(new_paths),
-            label="Uploading {size:,} photos".format(size=len(new_paths)),
+            label="Uploading {size:,} files".format(size=len(new_paths)),
             show_eta=True,
             show_pos=True,
         )
+
+    if dry_run:
+        return
 
     # Upload photos in a thread pool
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
