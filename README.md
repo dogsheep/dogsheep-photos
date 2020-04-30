@@ -1,6 +1,7 @@
 # photos-to-sqlite
 
 [![PyPI](https://img.shields.io/pypi/v/photos-to-sqlite.svg)](https://pypi.org/project/photos-to-sqlite/)
+[![Changelog](https://img.shields.io/github/v/release/dogsheep/photos-to-sqlite?include_prereleases&label=changelog)](https://github.com/dogsheep/photos-to-sqlite/releases)
 [![CircleCI](https://circleci.com/gh/dogsheep/photos-to-sqlite.svg?style=svg)](https://circleci.com/gh/dogsheep/photos-to-sqlite)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/dogsheep/photos-to-sqlite/blob/master/LICENSE)
 
