@@ -104,10 +104,12 @@ def upload(db_path, directories, auth, no_progress, dry_run):
     hashes = {v[0] for v in hash_and_size.values()}
     new_paths = [p for p in hash_and_size if hash_and_size[p][0] not in existing_keys]
     click.echo(
-        "\n{:,} hashed files, {:,} are not yet in S3".format(len(hashes), len(new_paths))
+        "\n{:,} hashed files, {:,} are not yet in S3".format(
+            len(hashes), len(new_paths)
+        )
     )
 
-    uploads = db.table("photos", pk="sha256")
+    uploads = db.table("uploads", pk="sha256")
     total_size = None
     bar = None
     if dry_run or not no_progress:
@@ -117,7 +119,7 @@ def upload(db_path, directories, auth, no_progress, dry_run):
             "{verb} {num} files, {total_size:.2f} GB".format(
                 verb="Would upload" if dry_run else "Uploading",
                 num=len(new_paths),
-                total_size=total_size / (1024 * 1024 * 1024)
+                total_size=total_size / (1024 * 1024 * 1024),
             )
         )
         bar = click.progressbar(
