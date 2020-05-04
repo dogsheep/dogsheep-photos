@@ -1,5 +1,6 @@
 import hashlib
 import pathlib
+from datetime import timezone
 
 CONTENT_TYPES = {
     "jpg": "image/jpeg",
@@ -40,3 +41,57 @@ def get_all_keys(client, bucket):
         for row in page["Contents"]:
             keys.append(row["Key"])
     return keys
+
+
+def osxphoto_to_row(sha256, photo):
+    return {
+        "sha256": sha256,
+        "uuid": photo.uuid,
+        "burst_uuid": photo._info["burstUUID"],
+        "filename": photo.filename,
+        "original_filename": photo.original_filename,
+        "description": photo.description,
+        "date": to_utc_isoformat(photo.date),
+        "date_modified": to_utc_isoformat(photo.date_modified),
+        "title": photo.title,
+        "keywords": photo.keywords,
+        "albums": photo.albums,
+        "persons": photo.persons,
+        "path": photo.path,
+        "ismissing": photo.ismissing,
+        "hasadjustments": photo.hasadjustments,
+        "external_edit": photo.external_edit,
+        "favorite": photo.favorite,
+        "hidden": photo.hidden,
+        "latitude": photo._latitude,
+        "longitude": photo._longitude,
+        "path_edited": photo.path_edited,
+        "shared": photo.shared,
+        "isphoto": photo.isphoto,
+        "ismovie": photo.ismovie,
+        "uti": photo.uti,
+        "burst": photo.burst,
+        "live_photo": photo.live_photo,
+        "path_live_photo": photo.path_live_photo,
+        "iscloudasset": photo.iscloudasset,
+        "incloud": photo.incloud,
+        "portrait": photo.portrait,
+        "screenshot": photo.screenshot,
+        "slow_mo": photo.slow_mo,
+        "time_lapse": photo.time_lapse,
+        "hdr": photo.hdr,
+        "selfie": photo.selfie,
+        "panorama": photo.panorama,
+        "has_raw": photo.has_raw,
+        "uti_raw": photo.uti_raw,
+        "path_raw": photo.path_raw,
+    }
+
+
+def to_utc_isoformat(dt):
+    if not dt:
+        return None
+    fixed = dt.astimezone(timezone.utc).isoformat().split(".")[0]
+    if not fixed.endswith("+00:00"):
+        fixed += "+00:00"
+    return fixed

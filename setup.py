@@ -26,7 +26,7 @@ setup(
         [console_scripts]
         photos-to-sqlite=photos_to_sqlite.cli:cli
     """,
-    install_requires=["sqlite-utils>=2.7", "boto3>=1.12.41"],
+    install_requires=["sqlite-utils>=2.7", "boto3>=1.12.41", "osxphotos>=0.28.13"],
     extras_require={"test": ["pytest"]},
     tests_require=["photos-to-sqlite[test]"],
 )

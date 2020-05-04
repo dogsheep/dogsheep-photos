@@ -2,10 +2,18 @@ import click
 import concurrent.futures
 import threading
 import sqlite_utils
+from sqlite_utils.db import OperationalError
+import osxphotos
 import boto3
 import json
 import pathlib
-from .utils import calculate_hash, image_paths, CONTENT_TYPES, get_all_keys
+from .utils import (
+    calculate_hash,
+    image_paths,
+    CONTENT_TYPES,
+    get_all_keys,
+    osxphoto_to_row,
+)
 
 boto3_local = threading.local()
 
@@ -151,6 +159,87 @@ def upload(db_path, directories, auth, no_progress, dry_run):
             )
             if bar:
                 bar.update(1)
+
+
+@cli.command(name="apple-photos")
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    required=True,
+)
+@click.option(
+    "--library",
+    type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
+    help="Location of Photos library to import",
+)
+def apple_photos(db_path, library):
+    "Import photo metadata from Apple Photos"
+    db = sqlite_utils.Database(db_path)
+    # Ensure index
+    try:
+        db["uploads"].create_index(["filepath"])
+    except OperationalError:
+        pass
+
+    if library:
+        photosdb = osxphotos.PhotosDB(library)
+    else:
+        photosdb = osxphotos.PhotosDB()
+
+    skipped = []
+
+    with click.progressbar(photosdb.photos()) as photos:
+        for photo in photos:
+            rows = list(db["uploads"].rows_where("filepath=?", [photo.path]))
+            if not rows:
+                skipped.append(photo)
+                continue
+            assert len(rows) == 1
+            sha256 = rows[0]["sha256"]
+            photo_row = osxphoto_to_row(sha256, photo)
+            db["apple_photos"].insert(
+                photo_row,
+                pk="uuid",
+                replace=True,
+                alter=True,
+                foreign_keys=(("sha256", "uploads", "sha256"),),
+            )
+    print("Skipped {}".format(len(skipped)))
+    # Ensure index
+    try:
+        db["apple_photos"].create_index(["date"])
+    except OperationalError:
+        pass
+    db.create_view(
+        "photos_with_apple_metadata",
+        """
+    select
+        json_object(
+            'img_src',
+            'https://photos.simonwillison.net/i/' || uploads.sha256 || '.' || uploads.ext || '?w=600'
+        ) as photo,
+        apple_photos.date,
+        apple_photos.albums,
+        apple_photos.persons,
+        latitude,
+        longitude,
+        favorite,
+        portrait,
+        screenshot,
+        slow_mo,
+        time_lapse,
+        hdr,
+        selfie,
+        panorama
+    from
+        apple_photos
+    join
+        uploads on apple_photos.sha256 = uploads.sha256
+    order by
+        apple_photos.date desc
+    """,
+        replace=True,
+    )
 
 
 def s3_upload(path, sha256, ext, creds):
