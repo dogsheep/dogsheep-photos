@@ -230,7 +230,10 @@ def apple_photos(db_path, library):
         time_lapse,
         hdr,
         selfie,
-        panorama
+        panorama,
+        place_city,
+        place_state_province,
+        place_country
     from
         apple_photos
     join

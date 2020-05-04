@@ -44,7 +44,7 @@ def get_all_keys(client, bucket):
 
 
 def osxphoto_to_row(sha256, photo):
-    return {
+    row = {
         "sha256": sha256,
         "uuid": photo.uuid,
         "burst_uuid": photo._info["burstUUID"],
@@ -86,6 +86,12 @@ def osxphoto_to_row(sha256, photo):
         "uti_raw": photo.uti_raw,
         "path_raw": photo.path_raw,
     }
+    # Now add place keys
+    place = photo.place
+    if place is not None:
+        for key, value in photo.place.address._asdict().items():
+            row["place_{}".format(key)] = value
+    return row
 
 
 def to_utc_isoformat(dt):
