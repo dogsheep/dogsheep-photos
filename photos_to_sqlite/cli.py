@@ -186,6 +186,46 @@ def apple_photos(db_path, library):
     else:
         photosdb = osxphotos.PhotosDB()
 
+    db.conn.execute("ATTACH DATABASE '{}' AS attached".format(photosdb._tmp_db))
+    if "apple_photos_scores" in db.table_names():
+        db["apple_photos_scores"].drop()
+    db.conn.execute("""
+    create table apple_photos_scores as select
+        ZGENERICASSET.ZUUID,
+        ZGENERICASSET.ZOVERALLAESTHETICSCORE,
+        ZGENERICASSET.ZCURATIONSCORE,
+        ZGENERICASSET.ZPROMOTIONSCORE,
+        ZGENERICASSET.ZHIGHLIGHTVISIBILITYSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZBEHAVIORALSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZFAILURESCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZHARMONIOUSCOLORSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZIMMERSIVENESSSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZINTERACTIONSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZINTERESTINGSUBJECTSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZINTRUSIVEOBJECTPRESENCESCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZLIVELYCOLORSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZLOWLIGHT,
+        ZCOMPUTEDASSETATTRIBUTES.ZNOISESCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTCAMERATILTSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTCOMPOSITIONSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTLIGHTINGSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTPATTERNSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTPERSPECTIVESCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTPOSTPROCESSINGSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTREFLECTIONSSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZPLEASANTSYMMETRYSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZSHARPLYFOCUSEDSUBJECTSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZTASTEFULLYBLURREDSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZWELLCHOSENSUBJECTSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZWELLFRAMEDSUBJECTSCORE,
+        ZCOMPUTEDASSETATTRIBUTES.ZWELLTIMEDSHOTSCORE
+    from
+        attached.ZGENERICASSET
+        join attached.ZCOMPUTEDASSETATTRIBUTES on
+            attached.ZGENERICASSET.Z_PK = attached.ZCOMPUTEDASSETATTRIBUTES.Z_PK;
+    """)
+    db["apple_photos_scores"].create_index(["ZUUID"])
+
     skipped = []
 
     with click.progressbar(photosdb.photos()) as photos:
@@ -218,6 +258,7 @@ def apple_photos(db_path, library):
             'img_src',
             'https://photos.simonwillison.net/i/' || uploads.sha256 || '.' || uploads.ext || '?w=600'
         ) as photo,
+        apple_photos.uuid,
         apple_photos.date,
         apple_photos.albums,
         apple_photos.persons,
@@ -233,11 +274,14 @@ def apple_photos(db_path, library):
         panorama,
         place_city,
         place_state_province,
-        place_country
+        place_country,
+        apple_photos_scores.*
     from
         apple_photos
     join
         uploads on apple_photos.sha256 = uploads.sha256
+    join
+        apple_photos_scores on apple_photos.uuid = apple_photos_scores.ZUUID
     order by
         apple_photos.date desc
     """,
