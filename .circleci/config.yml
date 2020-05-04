@@ -7,11 +7,7 @@ workflows:
             tags:
               only: /.*/
       - test-python-install:
-          version: "3.6"
-          requires:
-            - build
-      - test-python-install:
-          version: "3.7"
+          version: "3.8"
           requires:
             - build
       - deploy:
@@ -25,7 +21,7 @@ workflows:
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.8
     steps:
       - checkout
       - restore_cache:
@@ -54,7 +50,7 @@ jobs:
         type: string
         default: latest
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.8
     steps:
       - checkout
       - restore_cache:
@@ -79,7 +75,7 @@ jobs:
             pytest
   deploy:
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.8
     steps:
       - checkout
       - restore_cache:
