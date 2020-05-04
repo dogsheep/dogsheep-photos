@@ -262,6 +262,9 @@ def apple_photos(db_path, library):
         apple_photos.date,
         apple_photos.albums,
         apple_photos.persons,
+        uploads.ext,
+        uploads.sha256,
+        uploads.size,
         latitude,
         longitude,
         favorite,
@@ -280,7 +283,7 @@ def apple_photos(db_path, library):
         apple_photos
     join
         uploads on apple_photos.sha256 = uploads.sha256
-    join
+    left join
         apple_photos_scores on apple_photos.uuid = apple_photos_scores.ZUUID
     order by
         apple_photos.date desc
