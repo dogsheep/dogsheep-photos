@@ -3,7 +3,11 @@ import concurrent.futures
 import threading
 import sqlite_utils
 from sqlite_utils.db import OperationalError
-import osxphotos
+
+try:
+    import osxphotos
+except ImportError:
+    osxphotos = None
 import sqlite3
 import boto3
 import json
@@ -176,6 +180,8 @@ def upload(db_path, directories, auth, no_progress, dry_run):
 )
 def apple_photos(db_path, library):
     "Import photo metadata from Apple Photos"
+    if osxphotos is None:
+        raise click.ClickException("Missing dependency osxphotos")
     db = sqlite_utils.Database(db_path)
     # Ensure index
     try:
