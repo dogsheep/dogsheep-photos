@@ -1,5 +1,6 @@
 import hashlib
 import pathlib
+import uuid
 from datetime import timezone
 
 CONTENT_TYPES = {
@@ -101,3 +102,10 @@ def to_utc_isoformat(dt):
     if not fixed.endswith("+00:00"):
         fixed += "+00:00"
     return fixed
+
+
+def to_uuid(uuid_0, uuid_1):
+    b = uuid_0.to_bytes(8, "little", signed=True) + uuid_1.to_bytes(
+        8, "little", signed=True
+    )
+    return str(uuid.UUID(bytes=b)).upper()

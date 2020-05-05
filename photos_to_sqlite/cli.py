@@ -4,6 +4,7 @@ import threading
 import sqlite_utils
 from sqlite_utils.db import OperationalError
 import osxphotos
+import sqlite3
 import boto3
 import json
 import pathlib
@@ -13,6 +14,7 @@ from .utils import (
     CONTENT_TYPES,
     get_all_keys,
     osxphoto_to_row,
+    to_uuid,
 )
 
 boto3_local = threading.local()
@@ -189,7 +191,8 @@ def apple_photos(db_path, library):
     db.conn.execute("ATTACH DATABASE '{}' AS attached".format(photosdb._tmp_db))
     if "apple_photos_scores" in db.table_names():
         db["apple_photos_scores"].drop()
-    db.conn.execute("""
+    db.conn.execute(
+        """
     create table apple_photos_scores as select
         ZGENERICASSET.ZUUID,
         ZGENERICASSET.ZOVERALLAESTHETICSCORE,
@@ -223,7 +226,8 @@ def apple_photos(db_path, library):
         attached.ZGENERICASSET
         join attached.ZCOMPUTEDASSETATTRIBUTES on
             attached.ZGENERICASSET.Z_PK = attached.ZCOMPUTEDASSETATTRIBUTES.Z_PK;
-    """)
+    """
+    )
     db["apple_photos_scores"].create_index(["ZUUID"])
 
     skipped = []
@@ -291,6 +295,49 @@ def apple_photos(db_path, library):
     """,
         replace=True,
     )
+
+    # Last step: import the labels
+    labels_db_path = photosdb._dbfile_actual.parent / "search" / "psi.sqlite"
+    if labels_db_path.exists():
+        labels_db = sqlite3.connect(str(labels_db_path))
+        if db["labels"].exists():
+            db["labels"].drop()
+
+        def all_labels():
+            result = labels_db.execute(
+                """
+                select
+                    ga.rowid,
+                    assets.uuid_0,
+                    assets.uuid_1,
+                    groups.rowid as groupid,
+                    groups.category,
+                    groups.owning_groupid,
+                    groups.content_string,
+                    groups.normalized_string,
+                    groups.lookup_identifier
+                from
+                    ga
+                        join groups on groups.rowid = ga.groupid
+                        join assets on ga.assetid = assets.rowid
+                order by
+                    ga.rowid
+            """
+            )
+            cols = [c[0] for c in result.description]
+            for row in result.fetchall():
+                record = dict(zip(cols, row))
+                id = record.pop("rowid")
+                uuid = to_uuid(record.pop("uuid_0"), record.pop("uuid_1"))
+                # Strip out the `\u0000` characters:
+                for key in record:
+                    if isinstance(record[key], str):
+                        record[key] = record[key].replace("\x00", "")
+                yield {"id": id, "uuid": uuid, **record}
+
+        db["labels"].insert_all(all_labels(), pk="id", replace=True)
+        db["labels"].create_index(["uuid"], if_not_exists=True)
+        db["labels"].create_index(["normalized_string"], if_not_exists=True)
 
 
 def s3_upload(path, sha256, ext, creds):
