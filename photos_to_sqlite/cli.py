@@ -254,6 +254,7 @@ def apple_photos(db_path, library):
         "photos_with_apple_metadata",
         """
     select
+        apple_photos.rowid,
         json_object(
             'img_src',
             'https://photos.simonwillison.net/i/' || uploads.sha256 || '.' || uploads.ext || '?w=600'
