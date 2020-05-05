@@ -30,3 +30,11 @@ Run this command to upload every photo in a specific directory to your S3 bucket
 The command will only upload photos that have not yet been uploaded, based on their sha256 hash.
 
 To see what the command would do without uploading any files, use the `--dry-run` option.
+
+## Importing Apple Photos metadata
+
+The `apple-photos` command can be run _after_ the `upload` command to import metadata from your Apple Photos library.
+
+    $ photo-to-sqlite apple-photos photos.db
+
+Imported metadata includes places, people, albums, quality scores and machine learning labels for the photo contents.
