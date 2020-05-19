@@ -241,25 +241,26 @@ def apple_photos(db_path, library):
     with click.progressbar(photosdb.photos()) as photos:
         for photo in photos:
             rows = list(db["uploads"].rows_where("filepath=?", [photo.path]))
-            if not rows:
-                skipped.append(photo)
-                continue
-            assert len(rows) == 1
-            sha256 = rows[0]["sha256"]
+            if rows:
+                sha256 = rows[0]["sha256"]
+            else:
+                if photo.ismissing:
+                    print("Missing: {}".format(photo))
+                    continue
+                sha256 = calculate_hash(pathlib.Path(photo.path))
             photo_row = osxphoto_to_row(sha256, photo)
             db["apple_photos"].insert(
                 photo_row,
                 pk="uuid",
                 replace=True,
                 alter=True,
-                foreign_keys=(("sha256", "uploads", "sha256"),),
             )
-    print("Skipped {}".format(len(skipped)))
-    # Ensure index
-    try:
-        db["apple_photos"].create_index(["date"])
-    except OperationalError:
-        pass
+    # Ensure indexes
+    for column in ("date", "sha256"):
+        try:
+            db["apple_photos"].create_index([column])
+        except OperationalError:
+            pass
     db.create_view(
         "photos_with_apple_metadata",
         """
