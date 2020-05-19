@@ -1,6 +1,5 @@
 import click
 import concurrent.futures
-import threading
 import sqlite_utils
 from sqlite_utils.db import OperationalError
 
@@ -19,9 +18,9 @@ from .utils import (
     get_all_keys,
     osxphoto_to_row,
     to_uuid,
+    s3_upload,
+    hash_and_size_path,
 )
-
-boto3_local = threading.local()
 
 
 @click.group()
@@ -250,10 +249,7 @@ def apple_photos(db_path, library):
                 sha256 = calculate_hash(pathlib.Path(photo.path))
             photo_row = osxphoto_to_row(sha256, photo)
             db["apple_photos"].insert(
-                photo_row,
-                pk="uuid",
-                replace=True,
-                alter=True,
+                photo_row, pk="uuid", replace=True, alter=True,
             )
     # Ensure indexes
     for column in ("date", "sha256"):
@@ -345,28 +341,3 @@ def apple_photos(db_path, library):
         db["labels"].insert_all(all_labels(), pk="id", replace=True)
         db["labels"].create_index(["uuid"], if_not_exists=True)
         db["labels"].create_index(["normalized_string"], if_not_exists=True)
-
-
-def s3_upload(path, sha256, ext, creds):
-    client = getattr(boto3_local, "client", None)
-    if client is None:
-        client = boto3.client(
-            "s3",
-            aws_access_key_id=creds["photos_s3_access_key_id"],
-            aws_secret_access_key=creds["photos_s3_secret_access_key"],
-        )
-        boto3_local.client = client
-    keyname = "{}.{}".format(sha256, ext)
-    client.upload_file(
-        str(path),
-        creds["photos_s3_bucket"],
-        keyname,
-        ExtraArgs={"ContentType": CONTENT_TYPES[ext]},
-    )
-    return path
-
-
-def hash_and_size_path(path):
-    size = path.stat().st_size
-    sha256 = calculate_hash(path)
-    return path, sha256, size

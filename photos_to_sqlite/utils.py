@@ -1,5 +1,7 @@
+import boto3
 import hashlib
 import pathlib
+import threading
 import uuid
 from datetime import timezone
 
@@ -12,6 +14,8 @@ CONTENT_TYPES = {
 }
 
 HASH_BLOCK_SIZE = 1024 * 1024
+
+boto3_local = threading.local()
 
 
 def calculate_hash(path):
@@ -109,3 +113,28 @@ def to_uuid(uuid_0, uuid_1):
         8, "little", signed=True
     )
     return str(uuid.UUID(bytes=b)).upper()
+
+
+def s3_upload(path, sha256, ext, creds):
+    client = getattr(boto3_local, "client", None)
+    if client is None:
+        client = boto3.client(
+            "s3",
+            aws_access_key_id=creds["photos_s3_access_key_id"],
+            aws_secret_access_key=creds["photos_s3_secret_access_key"],
+        )
+        boto3_local.client = client
+    keyname = "{}.{}".format(sha256, ext)
+    client.upload_file(
+        str(path),
+        creds["photos_s3_bucket"],
+        keyname,
+        ExtraArgs={"ContentType": CONTENT_TYPES[ext]},
+    )
+    return path
+
+
+def hash_and_size_path(path):
+    size = path.stat().st_size
+    sha256 = calculate_hash(path)
+    return path, sha256, size
