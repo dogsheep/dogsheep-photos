@@ -354,3 +354,56 @@ def apple_photos(db_path, library, image_url_prefix, image_url_suffix):
         db["labels"].insert_all(all_labels(), pk="id", replace=True)
         db["labels"].create_index(["uuid"], if_not_exists=True)
         db["labels"].create_index(["normalized_string"], if_not_exists=True)
+
+
+@cli.command(name="create-subset")
+@click.argument(
+    "db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False, exists=True),
+)
+@click.argument(
+    "new_db_path",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False, exists=False),
+)
+@click.argument("sql",)
+def create_subset(db_path, new_db_path, sql):
+    "Create a new subset database of photos with sha256 matching those returned by this SQL query"
+    db = sqlite_utils.Database(db_path)
+    new_db = sqlite_utils.Database(new_db_path)
+    # Use the schema from the old database to create tables in the new database
+    for result in db.conn.execute(
+        "select sql from sqlite_master where sql is not null"
+    ):
+        new_db.conn.execute(result[0])
+    # Figure out the photos to copy across
+    sha256s = [r[0] for r in db.conn.execute(sql).fetchall()]
+    # Copy across apple_photos, apple_photos_scores, uploads
+    db.conn.execute("ATTACH DATABASE '{}' AS [{}]".format(str(new_db_path), "newdb"))
+    # First apple_photos
+    with db.conn:
+        sql = """
+            INSERT INTO
+                newdb.apple_photos
+            SELECT * FROM apple_photos WHERE sha256 in ({})
+        """.format(
+            ", ".join("'{}'".format(sha256) for sha256 in sha256s)
+        )
+        db.conn.execute(sql)
+    # Now the other tables
+    for sql in (
+        """
+            INSERT INTO
+                newdb.apple_photos_scores
+            SELECT * FROM apple_photos_scores WHERE ZUUID in (select uuid from newdb.apple_photos)
+        """,
+        """INSERT INTO
+                newdb.labels
+            SELECT * FROM labels WHERE uuid in (select uuid from newdb.apple_photos)""",
+        """
+            INSERT INTO
+                newdb.uploads
+            SELECT * FROM uploads WHERE sha256 in (select sha256 from newdb.apple_photos)
+            """,
+    ):
+        with db.conn:
+            db.conn.execute(sql)

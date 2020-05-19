@@ -38,3 +38,20 @@ The `apple-photos` command can be run _after_ the `upload` command to import met
     $ photo-to-sqlite apple-photos photos.db
 
 Imported metadata includes places, people, albums, quality scores and machine learning labels for the photo contents.
+
+## Creating a subset database
+
+You can create a new, subset database of photos using the `create-subset` command.
+
+This is useful for creating a shareable SQLite database that only contains metadata for a selected set of photos.
+
+Since photo metadata contains latitude and longitude you may not want to share a database that includes photos taken at your home address.
+
+`create-subset` takes three arguments: an existing database file created using the `apple-photos` command, the name of the new, shareable database file you would like to create and a SQL query that returns the `sha256` hash values of the photos you would like to include in that database.
+
+For example, here's how to create a shareable database of just the photos that have been added to albums containing the word "Public":
+
+    $ photos-to-sqlite create-subset \
+        photos.db \
+        public.db \
+        "select sha256 from apple_photos where albums like '%Public%'"
