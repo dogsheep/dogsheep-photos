@@ -7,15 +7,27 @@
 
 Save details of your photos to a SQLite database and upload them to S3
 
+## What these tools do
+
+These tools are a work-in-progress mechanism for taking full ownership of your photos. The core idea is to help implement the following:
+
+* Every photo you have taken lives in a single, private Amazon S3 bucket
+* You have a single SQLite database file which stores metadata about those photos - potentially pulled from multiple different places. This may include EXIF data, Apple Photos, the results of running machine learning APIs against photos and much more besides.
+* You can then use [Datasette](https://github.com/simonw/datasette) to explore your own photos.
+
+I'm a heavy user of Apple Photos so the initial releases of this tool will have a bias towards that, but ideally I would like a subset of these tools to be useful to people no matter which core photo solution they are using.
+
 ## Installation
 
     $ pip install photos-to-sqlite
 
-## Authentication
+## Authentication (if using S3)
 
-Create S3 credentials. This is a huge pain.
+If you want to use S3 to stare your photos, you will need to first create S3 credentials for a new, dedicated bucket.
 
-Run this command and paste in your credentials:
+This is a big pain. Here's [how I did it](https://github.com/dogsheep/photos-to-sqlite/issues/4).
+
+Run this command and paste in your credentials. You will need three values: the name of your S3 bucket, your Access key ID and your Secret access key.
 
     $ photos-to-sqlite s3-auth
 
@@ -25,15 +37,20 @@ This will create a file called `auth.json` in your current directory containing 
 
 Run this command to upload every photo in a specific directory to your S3 bucket:
 
-    $ photos-to-sqlite upload photos.db ~/Desktop
+    $ photos-to-sqlite upload photos.db \
+        ~/Pictures/Photos\ Library.photoslibrary/original
 
 The command will only upload photos that have not yet been uploaded, based on their sha256 hash.
 
+`photos.db` will be created with an `uploads` table containing details of which files were uploaded.
+
 To see what the command would do without uploading any files, use the `--dry-run` option.
+
+The sha256 hash of the photo contents will be used as the name of the file in the bucket, with an extension matching the type of file. This is an implementation of the [Content addressable storage](https://en.wikipedia.org/wiki/Content-addressable_storage) pattern.
 
 ## Importing Apple Photos metadata
 
-The `apple-photos` command can be run _after_ the `upload` command to import metadata from your Apple Photos library.
+The `apple-photos` command imports metadata from your Apple Photos library.
 
     $ photo-to-sqlite apple-photos photos.db
 
