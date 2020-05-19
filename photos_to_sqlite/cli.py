@@ -177,7 +177,14 @@ def upload(db_path, directories, auth, no_progress, dry_run):
     type=click.Path(file_okay=False, dir_okay=True, allow_dash=False),
     help="Location of Photos library to import",
 )
-def apple_photos(db_path, library):
+@click.option(
+    "--image-url-prefix",
+    help="URL prefix of hosted images - suffix will be sha256.ext",
+)
+@click.option(
+    "--image-url-suffix", help="URL suffix of hosted images, e.g. ?w=600", default=""
+)
+def apple_photos(db_path, library, image_url_prefix, image_url_suffix):
     "Import photo metadata from Apple Photos"
     if osxphotos is None:
         raise click.ClickException("Missing dependency osxphotos")
@@ -261,11 +268,7 @@ def apple_photos(db_path, library):
         "photos_with_apple_metadata",
         """
     select
-        apple_photos.rowid,
-        json_object(
-            'img_src',
-            'https://photos.simonwillison.net/i/' || uploads.sha256 || '.' || uploads.ext || '?w=600'
-        ) as photo,
+        apple_photos.rowid,{}
         apple_photos.uuid,
         apple_photos.date,
         apple_photos.albums,
@@ -295,7 +298,17 @@ def apple_photos(db_path, library):
         apple_photos_scores on apple_photos.uuid = apple_photos_scores.ZUUID
     order by
         apple_photos.date desc
-    """,
+    """.format(
+            """
+        json_object(
+            'img_src',
+            '{}' || uploads.sha256 || '.' || uploads.ext || '{}'
+        ) as photo,""".format(
+                image_url_prefix, image_url_suffix
+            )
+            if image_url_prefix
+            else ""
+        ),
         replace=True,
     )
 
