@@ -23,7 +23,7 @@ I'm a heavy user of Apple Photos so the initial releases of this tool will have 
 
 ## Authentication (if using S3)
 
-If you want to use S3 to stare your photos, you will need to first create S3 credentials for a new, dedicated bucket.
+If you want to use S3 to store your photos, you will need to first create S3 credentials for a new, dedicated bucket.
 
 This is a big pain. Here's [how I did it](https://github.com/dogsheep/dogsheep-photos/issues/4).
 
