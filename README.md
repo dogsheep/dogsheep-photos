@@ -1,9 +1,9 @@
-# photos-to-sqlite
+# dogsheep-photos
 
-[![PyPI](https://img.shields.io/pypi/v/photos-to-sqlite.svg)](https://pypi.org/project/photos-to-sqlite/)
-[![Changelog](https://img.shields.io/github/v/release/dogsheep/photos-to-sqlite?include_prereleases&label=changelog)](https://github.com/dogsheep/photos-to-sqlite/releases)
-[![CircleCI](https://circleci.com/gh/dogsheep/photos-to-sqlite.svg?style=svg)](https://circleci.com/gh/dogsheep/photos-to-sqlite)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/dogsheep/photos-to-sqlite/blob/master/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/dogsheep-photos.svg)](https://pypi.org/project/dogsheep-photos/)
+[![Changelog](https://img.shields.io/github/v/release/dogsheep/dogsheep-photos?include_prereleases&label=changelog)](https://github.com/dogsheep/dogsheep-photos/releases)
+[![CircleCI](https://circleci.com/gh/dogsheep/dogsheep-photos.svg?style=svg)](https://circleci.com/gh/dogsheep/dogsheep-photos)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/dogsheep/dogsheep-photos/blob/master/LICENSE)
 
 Save details of your photos to a SQLite database and upload them to S3
 
@@ -19,17 +19,17 @@ I'm a heavy user of Apple Photos so the initial releases of this tool will have 
 
 ## Installation
 
-    $ pip install photos-to-sqlite
+    $ pip install dogsheep-photos
 
 ## Authentication (if using S3)
 
 If you want to use S3 to stare your photos, you will need to first create S3 credentials for a new, dedicated bucket.
 
-This is a big pain. Here's [how I did it](https://github.com/dogsheep/photos-to-sqlite/issues/4).
+This is a big pain. Here's [how I did it](https://github.com/dogsheep/dogsheep-photos/issues/4).
 
 Run this command and paste in your credentials. You will need three values: the name of your S3 bucket, your Access key ID and your Secret access key.
 
-    $ photos-to-sqlite s3-auth
+    $ dogsheep-photos s3-auth
 
 This will create a file called `auth.json` in your current directory containing the required values. To save the file at a different path or filename, use the `--auth=myauth.json` option.
 
@@ -37,7 +37,7 @@ This will create a file called `auth.json` in your current directory containing 
 
 Run this command to upload every photo in a specific directory to your S3 bucket:
 
-    $ photos-to-sqlite upload photos.db \
+    $ dogsheep-photos upload photos.db \
         ~/Pictures/Photos\ Library.photoslibrary/original
 
 The command will only upload photos that have not yet been uploaded, based on their sha256 hash.
@@ -68,7 +68,7 @@ Since photo metadata contains latitude and longitude you may not want to share a
 
 For example, here's how to create a shareable database of just the photos that have been added to albums containing the word "Public":
 
-    $ photos-to-sqlite create-subset \
+    $ dogsheep-photos create-subset \
         photos.db \
         public.db \
         "select sha256 from apple_photos where albums like '%Public%'"

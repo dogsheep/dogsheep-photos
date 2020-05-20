@@ -42,7 +42,7 @@ jobs:
             . venv/bin/activate
             pip install -e .
             pip install pytest
-            photos-to-sqlite --help
+            dogsheep-photos --help
             pytest
   test-python-install:
     parameters:
@@ -71,7 +71,7 @@ jobs:
             . venv/bin/activate
             pip install -e .
             pip install pytest
-            photos-to-sqlite --help
+            dogsheep-photos --help
             pytest
   deploy:
     docker:

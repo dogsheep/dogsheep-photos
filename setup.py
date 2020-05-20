@@ -13,18 +13,18 @@ def get_long_description():
 
 
 setup(
-    name="photos-to-sqlite",
+    name="dogsheep-photos",
     description="Save details of your photos to a SQLite database and upload them to S3",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Simon Willison",
-    url="https://github.com/dogsheep/photos-to-sqlite",
+    url="https://github.com/dogsheep/dogsheep-photos",
     license="Apache License, Version 2.0",
     version=VERSION,
-    packages=["photos_to_sqlite"],
+    packages=["dogsheep_photos"],
     entry_points="""
         [console_scripts]
-        photos-to-sqlite=photos_to_sqlite.cli:cli
+        dogsheep-photos=dogsheep_photos.cli:cli
     """,
     install_requires=[
         "sqlite-utils>=2.7",
@@ -32,5 +32,5 @@ setup(
         "osxphotos>=0.28.13 ; sys_platform=='darwin'",
     ],
     extras_require={"test": ["pytest"]},
-    tests_require=["photos-to-sqlite[test]"],
+    tests_require=["dogsheep-photos[test]"],
 )

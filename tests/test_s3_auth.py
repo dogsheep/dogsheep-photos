@@ -1,5 +1,5 @@
 from click.testing import CliRunner
-from photos_to_sqlite.cli import cli
+from dogsheep_photos.cli import cli
 import json
 
 
