@@ -5,7 +5,9 @@
 [![CircleCI](https://circleci.com/gh/dogsheep/dogsheep-photos.svg?style=svg)](https://circleci.com/gh/dogsheep/dogsheep-photos)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/dogsheep/dogsheep-photos/blob/master/LICENSE)
 
-Save details of your photos to a SQLite database and upload them to S3
+Save details of your photos to a SQLite database and upload them to S3.
+
+See [Using SQL to find my best photo of a pelican according to Apple Photos](https://simonwillison.net/2020/May/21/apple-photos-sqlite/) for background information on this project.
 
 ## What these tools do
 
