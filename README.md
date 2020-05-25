@@ -74,3 +74,36 @@ For example, here's how to create a shareable database of just the photos that h
         photos.db \
         public.db \
         "select sha256 from apple_photos where albums like '%Public%'"
+
+## Serving photos locally with datasette-media
+
+If you don't want to upload your photos to S3 but you still want to browse them using Datasette you can do so using the [datasette-media](https://github.com/simonw/datasette-media) plugin. This plugin adds the ability to serve images and other static files directly from disk, configured using a SQL query.
+
+To use it, first install Datasette and the plugin:
+
+    $ pip install datasette datasette-media
+
+Now create a `metadata.yaml` file configuring the plugin:
+
+```yaml
+plugins:
+  datasette-media:
+    thumbnail:
+      sql: |-
+        select path as filepath, 200 as resize_height from apple_photos where uuid = :key
+    large:
+      sql: |-
+        select path as filepath, 1024 as resize_height from apple_photos where uuid = :key
+```
+This will configure two URL endpoins - one for 200 pixel high thumbnails and one for 1024 pixel hight larger images.
+
+Create your `photos.db` database using the `apple-photos` command, then run Datasette like this:
+
+    $ datasette -m metadata.yaml
+
+Your photos will be served on URLs that look like this:
+
+    http://127.0.0.1:8001/-/media/thumbnail/F4469918-13F3-43D8-9EC1-734C0E6B60AD
+    http://127.0.0.1:8001/-/media/large/F4469918-13F3-43D8-9EC1-734C0E6B60AD
+
+You can find the UUIDs for use in these URLs by running `select uuid from photos_with_apple_metadata`.
