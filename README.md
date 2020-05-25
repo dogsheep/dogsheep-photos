@@ -83,6 +83,10 @@ To use it, first install Datasette and the plugin:
 
     $ pip install datasette datasette-media
 
+If any of your photos are `.HEIC` images taken by an iPhone you should also install the optional `pyheif` dependency:
+
+    $ pip install pyheif
+
 Now create a `metadata.yaml` file configuring the plugin:
 
 ```yaml
@@ -107,3 +111,62 @@ Your photos will be served on URLs that look like this:
     http://127.0.0.1:8001/-/media/large/F4469918-13F3-43D8-9EC1-734C0E6B60AD
 
 You can find the UUIDs for use in these URLs by running `select uuid from photos_with_apple_metadata`.
+
+### Displaying images using datasette-json-html
+
+If you are using `datasette-media` to serve photos you can include images directly in Datasette query results using the [datasette-json-html](https://github.com/simonw/datasette-json-html) plugin.
+
+Run `pip install datasette-json-html` to install the plugin, then use queries like this to view your images:
+
+```sql
+select
+    json_object(
+        'img_src',
+        '/-/media/thumbnail/' || uuid
+    ) as photo,
+    uuid,
+    date
+from
+    apple_photos
+order by
+    date desc
+limit 10;
+```
+The `photo` column returned by this query should render as image tags that display the correct images.
+
+### Displaying images using custom template pages
+
+Datasette's [custom pages](https://datasette.readthedocs.io/en/stable/custom_templates.html#custom-pages) feature lets you create custom pages for a Datasette instance by dropping HTML templates into a `templates/pages` directory and then running Datasette using `datasette --template-dir=templates/`.
+
+You can combine that ability with the [datasette-template-sql](https://github.com/simonw/datasette-template-sql) plugin to create custom template pages that directly display photos served by `datasette-media`.
+
+Install the plugin using `pip install datasette-template-sql`.
+
+Create a `templates/pages` folder and add the following files:
+
+`recent-photos.html`
+```html+jinja
+<h1>Recent photos</h1>
+
+<div>
+{% for photo in sql("select * from apple_photos order by date desc limit 20") %}
+    <img src="/-/media/photo/{{ photo['uuid'] }}">
+{% endfor %}
+</div>
+```
+`random-photos.html`
+```html+jinja
+<h1>Random photos</h1>
+
+<div>
+{% for photo in sql("with foo as (select * from apple_photos order by date desc limit 5000) select * from foo order by random() limit 20") %}
+    <img src="/-/media/photo/{{ photo['uuid'] }}">
+{% endfor %}
+</div>
+```
+Now run Datasette like this:
+
+    $ datasette photos.db -m metadata.yaml --template-dir=templates/
+
+Visiting `http://localhost:8001/recent-photos` will display 20 recent photos. Visiting `http://localhost:8001/random-photos` will display 20 photos randomly selected from your 5,000 most recent.
+
