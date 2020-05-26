@@ -99,7 +99,7 @@ plugins:
       sql: |-
         select path as filepath, 1024 as resize_height from apple_photos where uuid = :key
 ```
-This will configure two URL endpoints - one for 200 pixel high thumbnails and one for 1024 pixel hight larger images.
+This will configure two URL endpoints - one for 200 pixel high thumbnails and one for 1024 pixel high larger images.
 
 Create your `photos.db` database using the `apple-photos` command, then run Datasette like this:
 
