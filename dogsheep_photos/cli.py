@@ -237,7 +237,7 @@ def apple_photos(db_path, library, image_url_prefix, image_url_suffix):
     from
         attached.ZGENERICASSET
         join attached.ZCOMPUTEDASSETATTRIBUTES on
-            attached.ZGENERICASSET.Z_PK = attached.ZCOMPUTEDASSETATTRIBUTES.Z_PK;
+            attached.ZGENERICASSET.Z_PK = attached.ZCOMPUTEDASSETATTRIBUTES.ZASSET;
     """
     )
     db["apple_photos_scores"].create_index(["ZUUID"])
