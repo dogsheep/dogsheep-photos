@@ -43,8 +43,9 @@ def get_all_keys(client, bucket):
     paginator = client.get_paginator("list_objects_v2")
     keys = []
     for page in paginator.paginate(Bucket=bucket):
-        for row in page["Contents"]:
-            keys.append(row["Key"])
+        if "Contents" in page:
+            for row in page["Contents"]:
+                keys.append(row["Key"])
     return keys
 
 
@@ -118,8 +119,10 @@ def to_uuid(uuid_0, uuid_1):
 def s3_upload(path, sha256, ext, creds):
     client = getattr(boto3_local, "client", None)
     if client is None:
+        endpoint_url = creds["photos_s3_endpoint"] if "photos_s3_endpoint" in creds and creds["photos_s3_endpoint"] else None
         client = boto3.client(
             "s3",
+            endpoint_url=endpoint_url,
             aws_access_key_id=creds["photos_s3_access_key_id"],
             aws_secret_access_key=creds["photos_s3_secret_access_key"],
         )

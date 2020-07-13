@@ -44,6 +44,7 @@ def s3_auth(auth):
     bucket = click.prompt("S3 bucket")
     access_key_id = click.prompt("Access key ID")
     secret_access_key = click.prompt("Secret access key")
+    s3_endpoint = click.prompt("S3 Endpoint (enter black for default)")
     if pathlib.Path(auth).exists():
         auth_data = json.load(open(auth))
     else:
@@ -51,6 +52,7 @@ def s3_auth(auth):
     auth_data.update(
         {
             "photos_s3_bucket": bucket,
+            "photos_s3_endpoint": s3_endpoint,
             "photos_s3_access_key_id": access_key_id,
             "photos_s3_secret_access_key": secret_access_key,
         }
@@ -86,8 +88,10 @@ def upload(db_path, directories, auth, no_progress, dry_run):
     "Upload photos from directories to S3"
     creds = json.load(open(auth))
     db = sqlite_utils.Database(db_path)
+    endpoint_url = creds["photos_s3_endpoint"] if "photos_s3_endpoint" in creds and creds["photos_s3_endpoint"] else None
     client = boto3.client(
         "s3",
+        endpoint_url=endpoint_url,
         aws_access_key_id=creds["photos_s3_access_key_id"],
         aws_secret_access_key=creds["photos_s3_secret_access_key"],
     )
@@ -129,7 +133,7 @@ def upload(db_path, directories, auth, no_progress, dry_run):
         # Calculate total size first
         total_size = sum(hash_and_size[p][1] for p in new_paths)
         click.echo(
-            "{verb} {num} files, {total_size:.2f} GB".format(
+            "{verb} {num:,} files, {total_size:.2f} GB".format(
                 verb="Would upload" if dry_run else "Uploading",
                 num=len(new_paths),
                 total_size=total_size / (1024 * 1024 * 1024),
