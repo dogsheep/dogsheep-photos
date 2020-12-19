@@ -29,7 +29,7 @@ setup(
     install_requires=[
         "sqlite-utils>=2.7",
         "boto3>=1.12.41",
-        "osxphotos>=0.28.13 ; sys_platform=='darwin'",
+        "osxphotos>=0.38.6 ; sys_platform=='darwin'",
     ],
     extras_require={"test": ["pytest"]},
     tests_require=["dogsheep-photos[test]"],

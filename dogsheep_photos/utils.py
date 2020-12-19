@@ -98,6 +98,39 @@ def osxphoto_to_row(sha256, photo):
             row["place_{}".format(key)] = value
     return row
 
+def osxphoto_to_score_row(photo):
+    score = photo.score
+    return {
+        "ZUUID": photo.uuid,
+        "ZOVERALLAESTHETICSCORE": score.overall,
+        "ZCURATIONSCORE": score.curation,
+        "ZPROMOTIONSCORE": score.promotion,
+        "ZHIGHLIGHTVISIBILITYSCORE": score.highlight_visibility,
+        "ZBEHAVIORALSCORE": score.behavioral,
+        "ZFAILURESCORE": score.failure,
+        "ZHARMONIOUSCOLORSCORE": score.harmonious_color,
+        "ZIMMERSIVENESSSCORE": score.immersiveness,
+        "ZINTERACTIONSCORE": score.interaction,
+        "ZINTERESTINGSUBJECTSCORE": score.interesting_subject,
+        "ZINTRUSIVEOBJECTPRESENCESCORE": score.intrusive_object_presence,
+        "ZLIVELYCOLORSCORE": score.lively_color,
+        "ZLOWLIGHT": score.low_light,
+        "ZNOISESCORE": score.noise,
+        "ZPLEASANTCAMERATILTSCORE": score.pleasant_camera_tilt,
+        "ZPLEASANTCOMPOSITIONSCORE": score.pleasant_composition,
+        "ZPLEASANTLIGHTINGSCORE": score.pleasant_lighting,
+        "ZPLEASANTPATTERNSCORE": score.pleasant_pattern,
+        "ZPLEASANTPERSPECTIVESCORE": score.pleasant_perspective,
+        "ZPLEASANTPOSTPROCESSINGSCORE": score.pleasant_post_processing,
+        "ZPLEASANTREFLECTIONSSCORE": score.pleasant_reflection,
+        "ZPLEASANTSYMMETRYSCORE": score.pleasant_symmetry,
+        "ZSHARPLYFOCUSEDSUBJECTSCORE": score.sharply_focused_subject,
+        "ZTASTEFULLYBLURREDSCORE": score.tastefully_blurred,
+        "ZWELLCHOSENSUBJECTSCORE": score.well_chosen_subject,
+        "ZWELLFRAMEDSUBJECTSCORE": score.well_framed_subject,
+        "ZWELLTIMEDSHOTSCORE": score.well_timed_shot,
+    }
+
 
 def to_utc_isoformat(dt):
     if not dt:
