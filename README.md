@@ -54,7 +54,7 @@ The sha256 hash of the photo contents will be used as the name of the file in th
 
 The `apple-photos` command imports metadata from your Apple Photos library.
 
-    $ photo-to-sqlite apple-photos photos.db
+    $ dogsheep-photos apple-photos photos.db
 
 Imported metadata includes places, people, albums, quality scores and machine learning labels for the photo contents.
 
