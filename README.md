@@ -27,7 +27,7 @@ I'm a heavy user of Apple Photos so the initial releases of this tool will have 
 
 If you want to use S3 to store your photos, you will need to first create S3 credentials for a new, dedicated bucket.
 
-This is a big pain. Here's [how I did it](https://github.com/dogsheep/dogsheep-photos/issues/4).
+You may find the [s3-credentials tool](https://github.com/simonw/s3-credentials) useful for this.
 
 Run this command and paste in your credentials. You will need three values: the name of your S3 bucket, your Access key ID and your Secret access key.
 
