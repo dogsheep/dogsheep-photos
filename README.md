@@ -103,7 +103,7 @@ This will configure two URL endpoints - one for 200 pixel high thumbnails and on
 
 Create your `photos.db` database using the `apple-photos` command, then run Datasette like this:
 
-    $ datasette -m metadata.yaml
+    $ datasette -m metadata.yaml photos.db
 
 Your photos will be served on URLs that look like this:
 
