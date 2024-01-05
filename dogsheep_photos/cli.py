@@ -88,7 +88,7 @@ def upload(db_path, directories, auth, no_progress, dry_run):
     db = sqlite_utils.Database(db_path)
     client = boto3.client(
         "s3",
-        endpoint_url==creds["photos_s3_endpoint_url"],
+        endpoint_url=creds["photos_s3_endpoint_url"],
         aws_access_key_id=creds["photos_s3_access_key_id"],
         aws_secret_access_key=creds["photos_s3_secret_access_key"],
     )
